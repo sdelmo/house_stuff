@@ -291,4 +291,400 @@
             <div class="small">Export a backup or move to another device.</div>
           </div>
           <div class="flex">
-            <button c
+            <button class="btn secondary" id="export2">Export JSON</button>
+            <label class="btn ghost" for="import2" style="cursor:pointer">Import JSON</label>
+            <input id="import2" type="file" accept="application/json" style="display:none">
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ============== Minimal Store (localStorage) ============== */
+const emptyData = () => ({
+  tasks: [], // {id,title,notes,room,priority,due,status}
+  contractors: [], // {id,name,trade,phone,notes,rating}
+  hoa: [], // {id,title,desc,due,contact,link,done:false}
+  budget: [], // {id,item,cat,planned,actual,notes}
+  wins: [], // {id,text,date}
+  theme: 'auto'
+});
+const KEY='renoboard:data:v1';
+let db = load();
+
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || emptyData(); }catch(e){ return emptyData(); } }
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); render(); }
+
+function id(){ return Math.random().toString(36).slice(2,9); }
+
+/* ============== Tabs ============== */
+const tabs=document.querySelectorAll('.tab');
+tabs.forEach(t=>t.onclick=()=>{ 
+  tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
+  document.querySelectorAll('#views > section').forEach(s=>s.style.display='none');
+  document.getElementById(t.dataset.tab).style.display='';
+});
+
+/* ============== Theme ============== */
+function applyTheme(mode){
+  const html=document.documentElement;
+  html.dataset.theme=mode;
+  if(mode==='light'){ html.style.setProperty('color-scheme','light'); }
+  else if(mode==='dark'){ html.style.setProperty('color-scheme','dark'); }
+  else{ html.style.removeProperty('color-scheme'); }
+}
+document.getElementById('theme-auto').onclick=()=>{ db.theme='auto'; save(); }
+document.getElementById('theme-dark').onclick=()=>{ db.theme='dark'; save(); }
+document.getElementById('theme-light').onclick=()=>{ db.theme='light'; save(); }
+
+/* ============== Task helpers ============== */
+const columns=['Backlog','Doing','Done'];
+const rooms=['Living Room','Kitchen','Bathroom','Bedroom','Hallway','Balcony'];
+const priorities=['High','Medium','Low'];
+
+function taskCard(t){
+  const el=document.createElement('div');
+  el.className='card'; el.draggable=true; el.dataset.id=t.id;
+  el.innerHTML=`
+    <div class="row">
+      <div><strong>${escapeHtml(t.title||'Untitled')}</strong></div>
+      <div class="flex">
+        ${t.priority? `<span class="tag ${prioClass(t.priority)}">${t.priority}</span>`:''}
+        ${t.room? `<span class="tag">${escapeHtml(t.room)}</span>`:''}
+        ${t.due? `<span class="tag amber">Due: ${t.due}</span>`:''}
+        <button class="chip small" data-edit>Edit</button>
+        <button class="chip small danger-text" data-del>Delete</button>
+      </div>
+    </div>
+    ${t.notes? `<div class="small">${escapeHtml(t.notes)}</div>`:''}
+  `;
+  // drag
+  el.addEventListener('dragstart', e=>{ el.classList.add('dragging'); e.dataTransfer.setData('text/plain', t.id); });
+  el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
+  el.querySelector('[data-edit]').onclick=()=> editTask(t.id);
+  el.querySelector('[data-del]').onclick=()=> { db.tasks = db.tasks.filter(x=>x.id!==t.id); save(); };
+  return el;
+}
+function prioClass(p){ return p==='High'?'red':p==='Medium'?'amber':'green'; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+/* ============== Renderers ============== */
+function renderBoard(){
+  // filters
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const fRoom = document.getElementById('filter-room').value;
+  const fPrio = document.getElementById('filter-priority').value;
+
+  columns.forEach(col=>{
+    const wrap=document.getElementById('col-'+col);
+    wrap.innerHTML='';
+    wrap.ondragover = e=> e.preventDefault();
+    wrap.ondrop = e=>{
+      e.preventDefault();
+      const tid = e.dataTransfer.getData('text/plain');
+      const t = db.tasks.find(x=>x.id===tid); if(!t) return;
+      t.status = col; save();
+    };
+
+    db.tasks.filter(t=>{
+      if(t.status!==col) return false;
+      if(q && !(t.title?.toLowerCase().includes(q) || t.notes?.toLowerCase().includes(q))) return false;
+      if(fRoom && t.room!==fRoom) return false;
+      if(fPrio && t.priority!==fPrio) return false;
+      return true;
+    }).forEach(t=> wrap.appendChild(taskCard(t)));
+  });
+
+  // progress
+  const total = db.tasks.length || 1;
+  const done = db.tasks.filter(t=>t.status==='Done').length;
+  document.getElementById('progressbar').style.width = Math.round(done*100/total) + '%';
+}
+
+function renderContractors(){
+  const tb=document.querySelector('#contractor-table tbody');
+  tb.innerHTML='';
+  db.contractors.forEach(c=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${escapeHtml(c.name||'')}</td>
+      <td>${escapeHtml(c.trade||'')}</td>
+      <td>${escapeHtml(c.phone||'')}</td>
+      <td>${escapeHtml(c.notes||'')}</td>
+      <td>${'★'.repeat(c.rating||0)}${'☆'.repeat(5-(c.rating||0))}</td>
+      <td class="right"><button class="chip small" data-edit>Edit</button> <button class="chip small danger-text" data-del>Delete</button></td>
+    `;
+    tr.querySelector('[data-edit]').onclick=()=> editContractor(c.id);
+    tr.querySelector('[data-del]').onclick=()=>{ db.contractors=db.contractors.filter(x=>x.id!==c.id); save(); };
+    tb.appendChild(tr);
+  });
+}
+
+function renderHOA(){
+  const list=document.getElementById('hoa-list');
+  list.innerHTML='';
+  db.hoa.forEach(h=>{
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`
+      <div class="row">
+        <div><strong>${escapeHtml(h.title||'')}</strong></div>
+        <div class="flex">
+          ${h.due? `<span class="tag amber">Due: ${h.due}</span>`:''}
+          ${h.contact? `<span class="tag">${escapeHtml(h.contact)}</span>`:''}
+          <button class="chip small" data-edit>Edit</button>
+          <button class="chip small danger-text" data-del>Delete</button>
+        </div>
+      </div>
+      ${h.link? `<div class="small">Doc: <a class="link" href="${escapeHtml(h.link)}" target="_blank" rel="noopener">open</a></div>`:''}
+      ${h.desc? `<div class="small">${escapeHtml(h.desc)}</div>`:''}
+      <label class="small"><input type="checkbox" ${h.done?'checked':''} data-done> Mark done</label>
+    `;
+    card.querySelector('[data-edit]').onclick=()=> editHOA(h.id);
+    card.querySelector('[data-del]').onclick=()=>{ db.hoa=db.hoa.filter(x=>x.id!==h.id); save(); };
+    card.querySelector('[data-done]').onchange=(e)=>{ h.done=e.target.checked; save(); };
+    list.appendChild(card);
+  });
+}
+
+function renderBudget(){
+  const tb=document.querySelector('#budget-table tbody'); tb.innerHTML='';
+  let planned=0, actual=0;
+  db.budget.forEach(b=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${escapeHtml(b.item||'')}</td>
+      <td>${escapeHtml(b.cat||'')}</td>
+      <td>£${Number(b.planned||0).toFixed(2)}</td>
+      <td>£${Number(b.actual||0).toFixed(2)}</td>
+      <td>${escapeHtml(b.notes||'')}</td>
+      <td class="right"><button class="chip small" data-edit>Edit</button> <button class="chip small danger-text" data-del>Delete</button></td>
+    `;
+    planned += Number(b.planned||0);
+    actual += Number(b.actual||0);
+    tr.querySelector('[data-edit]').onclick=()=> editBudget(b.id);
+    tr.querySelector('[data-del]').onclick=()=>{ db.budget=db.budget.filter(x=>x.id!==b.id); save(); };
+    tb.appendChild(tr);
+  });
+  document.getElementById('planned-sum').textContent=planned.toFixed(2);
+  document.getElementById('actual-sum').textContent=actual.toFixed(2);
+  const variance = planned-actual;
+  const vt = document.getElementById('variance-tag');
+  vt.textContent = `Variance: £${variance.toFixed(2)}`;
+}
+
+function renderWins(){
+  const list=document.getElementById('wins-list'); list.innerHTML='';
+  db.wins.slice().reverse().forEach(w=>{
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`<div class="row"><div>${escapeHtml(w.text)}</div><div class="small">${new Date(w.date).toLocaleString()}</div></div>`;
+    list.appendChild(card);
+  });
+}
+
+function render(){
+  // theme
+  applyTheme(db.theme);
+  // views
+  renderBoard(); renderContractors(); renderHOA(); renderBudget(); renderWins();
+}
+render();
+
+/* ============== Actions ============== */
+// Add/edit Task
+function editTask(tid){
+  const t = db.tasks.find(x=>x.id===tid) || {id:id(), status:'Backlog'};
+  const title = prompt('Task title:', t.title||'') ?? null; if(title===null) return;
+  const room = prompt('Room (e.g., Kitchen):', t.room||'') ?? ''; 
+  const priority = prompt('Priority (High/Medium/Low):', t.priority||'') ?? '';
+  const due = prompt('Due date (YYYY-MM-DD):', t.due||'') ?? '';
+  const notes = prompt('Notes:', t.notes||'') ?? '';
+
+  Object.assign(t,{title,room,priority,due,notes});
+  if(!db.tasks.some(x=>x.id===t.id)) db.tasks.push(t);
+  save();
+}
+document.getElementById('add-task').onclick=()=> editTask(id());
+document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=> { const tId=id(); db.tasks.push({id:tId,status:b.dataset.add,title:'',priority:'',room:'',notes:''}); save(); editTask(tId); });
+// filters
+document.getElementById('search').oninput=renderBoard;
+document.getElementById('filter-room').onchange=renderBoard;
+document.getElementById('filter-priority').onchange=renderBoard;
+
+// Contractors
+function editContractor(cid){
+  const c = db.contractors.find(x=>x.id===cid) || {id:id()};
+  const name = prompt('Name:', c.name||'') ?? null; if(name===null) return;
+  const trade = prompt('Trade (e.g., electrician):', c.trade||'') ?? '';
+  const phone = prompt('Phone:', c.phone||'') ?? '';
+  const notes = prompt('Notes:', c.notes||'') ?? '';
+  const rating = Number(prompt('Rating 0-5:', c.rating??'') ?? 0) || 0;
+  Object.assign(c,{name,trade,phone,notes,rating});
+  if(!db.contractors.some(x=>x.id===c.id)) db.contractors.push(c);
+  save();
+}
+document.getElementById('add-contractor').onclick=()=> editContractor(id());
+
+// HOA
+function editHOA(hid){
+  const h = db.hoa.find(x=>x.id===hid) || {id:id(), done:false};
+  const title = prompt('HOA item:', h.title||'') ?? null; if(title===null) return;
+  const desc = prompt('Details/requirements:', h.desc||'') ?? '';
+  const due = prompt('Due date (YYYY-MM-DD):', h.due||'') ?? '';
+  const contact = prompt('Contact (name/email):', h.contact||'') ?? '';
+  const link = prompt('Doc link (optional):', h.link||'') ?? '';
+  Object.assign(h,{title,desc,due,contact,link});
+  if(!db.hoa.some(x=>x.id===h.id)) db.hoa.push(h);
+  save();
+}
+document.getElementById('add-hoa').onclick=()=> editHOA(id());
+
+// Budget
+function editBudget(bid){
+  const b = db.budget.find(x=>x.id===bid) || {id:id()};
+  const item = prompt('Item:', b.item||'') ?? null; if(item===null) return;
+  const cat = prompt('Category:', b.cat||'') ?? '';
+  const planned = parseFloat(prompt('Planned (£):', b.planned??'') ?? '0') || 0;
+  const actual = parseFloat(prompt('Actual (£):', b.actual??'') ?? '0') || 0;
+  const notes = prompt('Notes:', b.notes||'') ?? '';
+  Object.assign(b,{item,cat,planned,actual,notes});
+  if(!db.budget.some(x=>x.id===b.id)) db.budget.push(b);
+  save();
+}
+document.getElementById('add-budget').onclick=()=> editBudget(id());
+
+// Wins
+document.getElementById('add-win').onclick=()=>{
+  const text = document.getElementById('win-input').value.trim();
+  if(!text) return;
+  db.wins.push({id:id(), text, date:Date.now()}); document.getElementById('win-input').value='';
+  save();
+};
+
+// Export/Import
+function exportJson(){
+  const blob = new Blob([JSON.stringify(db,null,2)], {type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='renoboard-data.json'; a.click();
+}
+document.getElementById('export').onclick=exportJson;
+document.getElementById('export2').onclick=exportJson;
+function importJson(file){
+  const fr=new FileReader();
+  fr.onload=()=>{ try{ const data=JSON.parse(fr.result); db=Object.assign(emptyData(), data); save(); }catch(e){ alert('Invalid JSON'); } };
+  fr.readAsText(file);
+}
+document.getElementById('import-file').onchange=e=> importJson(e.target.files[0]);
+document.getElementById('import2').onchange=e=> importJson(e.target.files[0]);
+
+// Sample data
+document.getElementById('quick-sample').onclick=()=>{
+  if(!confirm('Load sample data? This replaces your current data (but you can Export first).')) return;
+  db = emptyData();
+  db.tasks = [
+    {id:id(), title:'Submit HOA renovation form', notes:'Attach floor plan + contractor insurance.', room:'Hallway', priority:'High', due:future(7), status:'Doing'},
+    {id:id(), title:'Choose kitchen tiles', notes:'Shortlist 3 options', room:'Kitchen', priority:'Medium', due:future(10), status:'Backlog'},
+    {id:id(), title:'Electrical rough-in', notes:'Coordinate with electrician', room:'Living Room', priority:'High', due:future(21), status:'Backlog'},
+    {id:id(), title:'Paint bedroom walls', notes:'Sage green', room:'Bedroom', priority:'Low', due:'', status:'Doing'},
+    {id:id(), title:'Install bathroom vanity', notes:'Check plumbing height', room:'Bathroom', priority:'High', due:future(28), status:'Backlog'},
+    {id:id(), title:'Order sofa', notes:'3-seater, neutral', room:'Living Room', priority:'Low', due:'', status:'Done'}
+  ];
+  db.contractors = [
+    {id:id(), name:'Elena Watts', trade:'General Contractor', phone:'0123 456 789', notes:'Very communicative, fair pricing.', rating:5},
+    {id:id(), name:'Northside Electrics', trade:'Electrician', phone:'0123 123 999', notes:'Ask about weekend slot.', rating:4}
+  ];
+  db.hoa = [
+    {id:id(), title:'Noise variance request', desc:'Submit schedule & quiet hours plan', due:future(5), contact:'Jamie @ HOA', link:'', done:false}
+  ];
+  db.budget = [
+    {id:id(), item:'Kitchen cabinets', cat:'Kitchen', planned:3500, actual:0, notes:'Awaiting quote'},
+    {id:id(), item:'Bathroom tile', cat:'Bathroom', planned:800, actual:920, notes:'Over by £120'},
+    {id:id(), item:'Paint', cat:'All rooms', planned:250, actual:198.5, notes:''}
+  ];
+  db.wins = [
+    {id:id(), text:'Chose bedroom paint colour', date:Date.now()-86400000},
+    {id:id(), text:'Booked GC walkthrough', date:Date.now()-3600000}
+  ];
+  save();
+}
+function future(days){ const d=new Date(Date.now()+days*86400000); return d.toISOString().slice(0,10); }
+
+/* ============== GitHub Gist Sync ============== */
+const GH = {
+  async create(token){
+    const body = {
+      description: "RenoBoard data",
+      public: false,
+      files: { "renoboard.json": { content: JSON.stringify(db,null,2) } }
+    };
+    const res = await fetch('https://api.github.com/gists', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json' },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok) throw new Error('Create failed: '+res.status);
+    const j = await res.json(); return j.id;
+  },
+  async load(token, gistId){
+    const res = await fetch('https://api.github.com/gists/'+gistId, {
+      headers:{ 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json' }
+    });
+    if(!res.ok) throw new Error('Load failed: '+res.status);
+    const j = await res.json();
+    const file = j.files['renoboard.json'] || Object.values(j.files)[0];
+    const content = await (await fetch(file.raw_url)).text();
+    db = Object.assign(emptyData(), JSON.parse(content)); save();
+  },
+  async save(token, gistId){
+    const body = {
+      files: { "renoboard.json": { content: JSON.stringify(db,null,2) } }
+    };
+    const res = await fetch('https://api.github.com/gists/'+gistId, {
+      method:'PATCH',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json' },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok) throw new Error('Save failed: '+res.status);
+  }
+};
+const tokEl = document.getElementById('gh-token');
+const gistEl = document.getElementById('gh-gist');
+tokEl.value = localStorage.getItem('renoboard:gh:token') || '';
+gistEl.value = localStorage.getItem('renoboard:gh:gist') || '';
+
+document.getElementById('gh-create').onclick = async ()=>{
+  try{
+    if(!tokEl.value) return alert('Add your GitHub token first.');
+    const gid = await GH.create(tokEl.value);
+    gistEl.value = gid;
+    localStorage.setItem('renoboard:gh:token', tokEl.value);
+    localStorage.setItem('renoboard:gh:gist', gid);
+    alert('Created private gist and saved current data.\nGist ID: '+gid);
+  }catch(e){ alert(e.message); }
+};
+document.getElementById('gh-load').onclick = async ()=>{
+  try{
+    if(!tokEl.value || !gistEl.value) return alert('Token and Gist ID required.');
+    localStorage.setItem('renoboard:gh:token', tokEl.value);
+    localStorage.setItem('renoboard:gh:gist', gistEl.value);
+    await GH.load(tokEl.value, gistEl.value);
+    alert('Loaded from gist.');
+  }catch(e){ alert(e.message); }
+};
+document.getElementById('gh-save').onclick = async ()=>{
+  try{
+    if(!tokEl.value || !gistEl.value) return alert('Token and Gist ID required.');
+    localStorage.setItem('renoboard:gh:token', tokEl.value);
+    localStorage.setItem('renoboard:gh:gist', gistEl.value);
+    await GH.save(tokEl.value, gistEl.value);
+    alert('Saved to gist.');
+  }catch(e){ alert(e.message); }
+};
+
+/* ============== Accessibility niceties ============== */
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='n' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); editTask(id()); }
+});
+</script>
+</body>
+</html>
