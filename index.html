@@ -8,7 +8,7 @@
 <link rel="icon" href="data:,">
 <style>
   :root{
-    /* light, readable, WCAG-friendly */
+    /* Light, readable, WCAG-friendly */
     --bg:#f7fafc; --text:#111827; --muted:#e5e7eb; --panel:#ffffff; --soft:#4b5563;
     --brand:#2563eb; --brand-2:#22c55e; --warn:#b45309; --danger:#b91c1c;
     --card:#ffffff; --shadow:0 10px 25px rgba(0,0,0,.07); --radius:14px;
@@ -72,9 +72,11 @@
   .login{max-width:560px;margin:10vh auto;background:var(--panel);padding:24px;border-radius:16px;border:1px solid var(--muted);box-shadow:var(--shadow)}
   .login h1{margin:0 0 8px}
   .stack{display:grid;gap:12px}
+  .hint{font-size:12px;color:var(--soft);margin-top:-6px}
 </style>
 </head>
 <body>
+<!-- LOGIN -->
 <div id="login" class="login" hidden>
   <h1>Welcome to RenoBoard</h1>
   <p class="small">Create a passphrase (or enter your existing one) to unlock your data. Your passphrase never leaves this device. Data is encrypted with AES-GCM.</p>
@@ -82,24 +84,23 @@
     <input id="passphrase" type="text" placeholder="Passphrase (keep it memorable)">
     <div class="row">
       <div class="stack">
-        <input id="gh-token" type="text" placeholder="(Optional) GitHub token with gist scope">
+        <input id="gh-token" type="text" placeholder="(Optional) GitHub token with Gist: read/write">
         <input id="gh-gist"  type="text" placeholder="(Optional) Gist ID for sync">
-        <div class="small">Tip: leave Gist ID empty and click “Create Gist” later to make a private one.</div>
+        <div class="hint">Tip: leave Gist ID empty and click “Create Gist” later in Settings to make a private one.</div>
       </div>
-      <div>
-        <button class="btn ghost" id="btn-load-gist">Load from Gist</button>
-      </div>
+      <div><button class="btn ghost" id="btn-load-gist">Load from Gist</button></div>
     </div>
     <div class="row">
       <div class="stack">
         <input id="import-file" type="file" accept="application/json">
-        <div class="small">Or choose a previously exported encrypted backup file.</div>
+        <div class="hint">Or choose an encrypted backup file you exported earlier.</div>
       </div>
       <div><button class="btn alt" id="btn-enter">Enter</button></div>
     </div>
   </div>
 </div>
 
+<!-- APP -->
 <div class="wrap" id="app" hidden>
   <header>
     <div class="brand">
@@ -205,36 +206,31 @@
 </div>
 
 <script>
-/* ---------- UX helpers ---------- */
+/* ---------- Basics ---------- */
 const $ = (s, el=document)=>el.querySelector(s);
 const $$ = (s, el=document)=>Array.from(el.querySelectorAll(s));
 const fmt = n => '£'+(Number(n||0)).toFixed(2);
-const KEY = 'renoboard:encrypted:v1';          // encrypted blob
-const SALT_KEY = 'renoboard:salt';             // PBKDF2 salt
-const META_KEY = 'renoboard:meta';             // {gistId?, iv?}
+const KEY = 'renoboard:encrypted:v1';        // encrypted blob
+const META_KEY = 'renoboard:meta';           // {gistId?}
+const INACTIVITY_MS = 15*60*1000;            // 15 minutes auto-lock
 
-/* ---------- Minimal data shape ---------- */
-const blank = ()=>({
-  tasks:[], contractors:[], hoa:[], budget:[], wins:[]
-});
+/* ---------- Data ---------- */
+const blank = ()=>({ tasks:[], contractors:[], hoa:[], budget:[], wins:[] });
 
-/* ---------- Simple tabs ---------- */
+/* ---------- Tabs ---------- */
 $$('.tab').forEach(b=>b.onclick=()=>{
   $$('.tab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
   $$('[id^="view-"]').forEach(s=>s.hidden=true);
   $('#view-'+b.dataset.tab).hidden=false;
 });
 
-/* ---------- Encryption (AES-GCM, PBKDF2) ---------- */
+/* ---------- Crypto (AES-GCM with PBKDF2) ---------- */
 async function deriveKey(pass, salt){
   const enc = new TextEncoder();
   const baseKey = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
     {name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'},
-    baseKey,
-    {name:'AES-GCM', length:256},
-    false,
-    ['encrypt','decrypt']
+    baseKey,{name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
   );
 }
 async function encryptData(pass, data){
@@ -258,16 +254,24 @@ const b64d = str => new Uint8Array([...atob(str)].map(c=>c.charCodeAt(0)));
 
 /* ---------- Local & session ---------- */
 let db = blank();
-let PASS = '';   // passphrase in memory (session only)
+let PASS = '';                           // passphrase (memory only)
 let GIST = localStorage.getItem('renoboard:gist') || '';
 let TOKEN = localStorage.getItem('renoboard:token') || '';
+let lockTimer = null;
 
-function saveLocal(){
-  if(!PASS){ console.warn('Not saving (no passphrase)'); return; }
-  encryptData(PASS, db).then(payload=>{
-    localStorage.setItem(KEY, JSON.stringify(payload));
-    localStorage.setItem(META_KEY, JSON.stringify({gistId:GIST}));
-  });
+function resetInactivityTimer(){
+  clearTimeout(lockTimer);
+  lockTimer = setTimeout(()=> lockApp('Locked due to inactivity.'), INACTIVITY_MS);
+}
+['click','keydown','pointerdown','scroll','visibilitychange'].forEach(ev=>{
+  document.addEventListener(ev, ()=>{ if(!$('#app').hidden) resetInactivityTimer(); }, {passive:true});
+});
+
+async function saveLocal(){
+  if(!PASS) return;
+  const payload = await encryptData(PASS, db);
+  localStorage.setItem(KEY, JSON.stringify(payload));
+  localStorage.setItem(META_KEY, JSON.stringify({gistId:GIST}));
 }
 async function loadLocal(pass){
   const raw = localStorage.getItem(KEY);
@@ -276,13 +280,14 @@ async function loadLocal(pass){
   db = await decryptData(pass, payload);
 }
 
-/* ---------- GitHub Gist sync ---------- */
+/* ---------- GitHub Gist Sync ---------- */
 async function gistCreate(){
   if(!TOKEN) return alert('Add your GitHub token first (gist scope).');
   const res = await fetch('https://api.github.com/gists',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN,'Accept':'application/vnd.github+json'},
-    body: JSON.stringify({description:'RenoBoard data (encrypted)', public:false, files:{'renoboard.enc.json':{content:localStorage.getItem(KEY)||'{}'}})
+    body: JSON.stringify({description:'RenoBoard data (encrypted)',
+      public:false, files:{'renoboard.enc.json':{content:localStorage.getItem(KEY)||'{}'}}})
   });
   if(!res.ok) return alert('Create failed: '+res.status);
   const j=await res.json(); GIST=j.id; localStorage.setItem('renoboard:gist',GIST);
@@ -308,18 +313,34 @@ async function gistLoad(){
   alert('Downloaded. Enter your passphrase to unlock.');
 }
 
-/* ---------- UI wiring (login) ---------- */
-function showLogin(show=true){ $('#login').hidden=!show; $('#app').hidden=show; }
-showLogin(true);
+/* ---------- Login & lock flow ---------- */
+function showLogin(show=true){ $('#login').hidden = !show; $('#app').hidden = show; }
+function lockApp(msg){
+  PASS=''; showLogin(true);
+  if(msg) alert(msg);
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  // ALWAYS show login on first load
+  showLogin(true);
+  // Pre-fill token/gist if stored
+  $('#gh-token').value = localStorage.getItem('renoboard:token') || '';
+  $('#gh-gist').value  = localStorage.getItem('renoboard:gist') || '';
+});
 
 $('#btn-enter').onclick = async ()=>{
-  const pass = $('#passphrase').value.trim(); if(!pass) return alert('Please enter a passphrase.');
+  const pass = $('#passphrase').value.trim();
+  if(!pass) return alert('Please enter a passphrase.');
   try{
-    PASS = pass; await loadLocal(PASS); // ok if none present
-    // cache token/gist if provided
-    TOKEN = $('#gh-token').value.trim() || TOKEN; GIST = $('#gh-gist').value.trim() || GIST;
-    localStorage.setItem('renoboard:token', TOKEN); localStorage.setItem('renoboard:gist', GIST);
-    showLogin(false); renderAll(); saveLocal();
+    PASS = pass;
+    await loadLocal(PASS);         // loads existing blob or creates new memory model
+    TOKEN = $('#gh-token').value.trim() || TOKEN;
+    GIST  = $('#gh-gist').value.trim()  || GIST;
+    localStorage.setItem('renoboard:token', TOKEN);
+    localStorage.setItem('renoboard:gist', GIST);
+    showLogin(false);
+    renderAll();
+    await saveLocal();             // ensure an encrypted blob exists asap
+    resetInactivityTimer();
   }catch(e){ alert('Could not unlock: '+e.message); }
 };
 $('#btn-load-gist').onclick = async ()=>{
@@ -336,9 +357,13 @@ $('#import-file').onchange = async (e)=>{
 
 /* ---------- Board & features ---------- */
 const columns=['Backlog','Doing','Done'];
-function card(t){
+function id(){ return Math.random().toString(36).slice(2,9); }
+function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function future(d){ const t=new Date(Date.now()+d*86400000); return t.toISOString().slice(0,10); }
+
+function taskCard(t){
   const el=document.createElement('div'); el.className='card'; el.draggable=true; el.dataset.id=t.id;
-  el.innerHTML = `
+  el.innerHTML=`
     <div class="row">
       <div><strong>${esc(t.title||'Untitled')}</strong></div>
       <div>
@@ -374,12 +399,11 @@ function renderBoard(){
       if(r && t.room!==r) return false;
       if(p && t.priority!==p) return false;
       return true;
-    }).forEach(t=> colEl.appendChild(card(t)));
+    }).forEach(t=> colEl.appendChild(taskCard(t)));
   });
   const total = db.tasks.length||1; const done = db.tasks.filter(t=>t.status==='Done').length;
   $('#bar').style.width = Math.round(done*100/total)+'%';
 }
-function id(){ return Math.random().toString(36).slice(2,9); }
 function editTask(tid){
   const t=db.tasks.find(x=>x.id===tid)||{id:id(),status:'Backlog'};
   const title = prompt('Task title:', t.title||''); if(title===null) return;
@@ -473,7 +497,7 @@ function editBudget(bid){
 function renderWins(){ const list=$('#wins'); list.innerHTML=''; db.wins.slice().reverse().forEach(w=>{ const div=document.createElement('div'); div.className='card'; div.textContent=`${w.text} — ${new Date(w.date).toLocaleString()}`; list.appendChild(div); }); }
 $('#add-win').onclick=()=>{ const v=$('#wintext').value.trim(); if(!v) return; db.wins.push({id:id(), text:v, date:Date.now()}); $('#wintext').value=''; saveLocal(); renderWins(); };
 
-/* Toolbar filters */
+/* Filters */
 $('#q').oninput=renderBoard; $('#f-room').onchange=renderBoard; $('#f-prio').onchange=renderBoard;
 
 /* Seed & export */
@@ -481,18 +505,16 @@ $('#seed').onclick=()=>{ if(!confirm('Replace current data with samples?')) retu
 $('#export').onclick=()=>{ const blob=new Blob([localStorage.getItem(KEY)||'{}'], {type:'application/json'}); dl(blob,'renoboard.enc.json'); };
 $('#export-plain').onclick=()=>{ const blob=new Blob([JSON.stringify(db,null,2)], {type:'application/json'}); dl(blob,'renoboard.json'); };
 function dl(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); }
-function future(d){ const t=new Date(Date.now()+d*86400000); return t.toISOString().slice(0,10); }
-function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
 /* Settings */
 $('#gist-create').onclick=gistCreate;
-$('#gist-load').onclick=async ()=>{ await gistLoad(); alert('Gist downloaded. Lock and re-enter your passphrase to decrypt, or just hit Enter now.'); };
+$('#gist-load').onclick=async ()=>{ await gistLoad(); alert('Gist downloaded. Lock and re-enter your passphrase to decrypt, or just press Enter now.'); };
 $('#gist-save').onclick=gistSave;
 $('#change-pass').onclick=async ()=>{
   const np = prompt('New passphrase:',''); if(!np) return;
-  PASS = np; saveLocal(); alert('Passphrase updated for this device (re-encrypted locally). Don’t forget it!');
+  PASS = np; await saveLocal(); alert('Passphrase updated for this device (data re-encrypted). Don’t forget it!');
 };
-$('#lock').onclick=()=>{ PASS=''; showLogin(true); };
+$('#lock').onclick=()=> lockApp();
 
 /* Render all views */
 function renderAll(){ renderBoard(); renderContractors(); renderHOA(); renderBudget(); renderWins(); }
