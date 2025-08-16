@@ -3,111 +3,221 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RenoBoard — Renovation Hub</title>
-<meta name="description" content="A calm, visual renovation hub with private data.">
+<title>RenoBoard — Pastel Renovation Hub</title>
+<meta name="description" content="A pastel, calm renovation hub with encryption, gist sync, and gentle vibes.">
 <link rel="icon" href="data:,">
 <style>
+  /* ========= Pastel, cute, accessible ========= */
   :root{
-    /* Light, readable, WCAG-friendly */
-    --bg:#f7fafc; --text:#111827; --muted:#e5e7eb; --panel:#ffffff; --soft:#4b5563;
-    --brand:#2563eb; --brand-2:#22c55e; --warn:#b45309; --danger:#b91c1c;
-    --card:#ffffff; --shadow:0 10px 25px rgba(0,0,0,.07); --radius:14px;
-    --btn:#111827; --btn-text:#ffffff; --btn-alt:#2563eb; --btn-alt-text:#ffffff;
+    --bg:#fcfbff;
+    --ink:#1f2937;
+    --muted:#e8e6f7;
+    --panel:#ffffff;
+    --card:#ffffff;
+    --soft:#6b7280;
+
+    --p1:#a7f3d0; /* mint */
+    --p2:#fde68a; /* soft sun */
+    --p3:#bfdbfe; /* sky */
+    --p4:#fbcfe8; /* pink */
+    --p5:#c7d2fe; /* periwinkle */
+    --cta:#8b5cf6; /* lavender */
+    --cta-ink:#ffffff;
+
+    --warn:#f59e0b;
+    --danger:#ef4444;
+
+    --radius:16px;
+    --shadow:0 12px 28px rgba(31,41,55,.10);
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --bg:#0b0c0f; --text:#f3f4f6; --muted:#1f2937; --panel:#121418; --soft:#cbd5e1;
-      --card:#0f1115; --shadow:0 10px 30px rgba(0,0,0,.35);
-      --btn:#e5e7eb; --btn-text:#111827; --btn-alt:#3b82f6; --btn-alt-text:#0b0c0f;
+      --bg:#0c0e13;
+      --ink:#f3f4f6;
+      --muted:#1a1f2b;
+      --panel:#0f1219;
+      --card:#101523;
+      --soft:#cbd5e1;
+
+      --p1:#065f46; --p2:#7c5206; --p3:#0b3f8a; --p4:#7a284f; --p5:#2e3470;
+      --cta:#7c3aed; --cta-ink:#fff;
+
+      --shadow:0 12px 32px rgba(0,0,0,.45);
     }
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-  .wrap{max-width:1100px;margin:28px auto 80px;padding:0 16px}
-  header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:16px}
-  .brand{display:flex;align-items:center;gap:12px}
-  .logo{width:40px;height:40px;border-radius:12px;background:
-    radial-gradient(70% 70% at 30% 20%, #60a5fa, transparent 60%),
-    radial-gradient(70% 70% at 85% 75%, #34d399, transparent 60%),
-    linear-gradient(135deg, #e5e7eb, #c7d2fe)}
-  .title{font-weight:800;letter-spacing:.2px}
-  .small{font-size:12px;color:var(--soft)}
-  .tabs{display:flex;gap:8px;flex-wrap:wrap}
-  .tab{border:1px solid var(--muted);background:var(--panel);padding:12px 16px;border-radius:12px;cursor:pointer}
-  .tab.active{outline:3px solid color-mix(in srgb, var(--brand) 30%, transparent)}
-  .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
-  input[type="text"],select,input[type="date"]{
-    border:1px solid var(--muted);background:var(--panel);color:var(--text);
-    padding:12px 14px;border-radius:12px;min-width:220px
+  html,body{height:100%}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 800px at 10% -20%, rgba(167,243,208,.35), transparent 55%),
+      radial-gradient(1100px 900px at 110% 0%, rgba(251,207,232,.35), transparent 55%),
+      radial-gradient(900px 700px at 50% 120%, rgba(191,219,254,.35), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font:16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial, sans-serif;
   }
-  .btn{background:var(--btn);color:var(--btn-text);border:none;padding:12px 18px;border-radius:12px;cursor:pointer;font-weight:700;box-shadow:var(--shadow)}
-  .btn.alt{background:var(--btn-alt);color:var(--btn-alt-text)}
-  .btn.ghost{background:transparent;border:1px solid var(--muted);color:var(--text)}
-  .btn.warn{background:#f59e0b;color:#111}
-  .btn.danger{background:#ef4444;color:#fff}
-  .panel{background:var(--panel);border:1px solid var(--muted);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
-  .grid{display:grid;gap:14px}
-  .columns{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  @media (max-width:900px){.columns{grid-template-columns:1fr}}
-  .col{display:flex;flex-direction:column;gap:10px}
-  .column-header{display:flex;align-items:center;justify-content:space-between}
-  .kanban{min-height:200px;display:flex;flex-direction:column;gap:10px;padding:6px}
-  .drop{border:2px dashed var(--muted);border-radius:12px;padding:8px}
-  .card{background:var(--card);border:1px solid var(--muted);border-radius:12px;padding:12px;display:grid;gap:8px;box-shadow:var(--shadow)}
-  .rows{display:grid;gap:10px}
-  .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-  .tag{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef2ff;border:1px solid #c7d2fe}
-  .tag.amber{background:#fff7ed;border-color:#fed7aa}
-  .tag.red{background:#fee2e2;border-color:#fecaca}
-  table{width:100%;border-collapse:separate;border-spacing:0 10px}
-  th,td{padding:10px 12px;text-align:left}
-  tbody tr{background:var(--card);border:1px solid var(--muted)}
-  tbody tr td:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
-  tbody tr td:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
-  .progress{height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden}
-  .progress>div{height:100%;background:linear-gradient(90deg,#2563eb,#22c55e)}
-  .right{justify-content:flex-end}
+  .wrap{max-width:1100px; margin:28px auto 96px; padding:0 16px}
+  header{display:flex; gap:18px; align-items:center; justify-content:space-between; margin-bottom:16px}
+  .brand{display:flex; align-items:center; gap:12px}
+  .logo{
+    width:44px; height:44px; border-radius:14px;
+    background:
+      radial-gradient(70% 70% at 30% 20%, var(--p5), transparent 60%),
+      radial-gradient(70% 70% at 85% 75%, var(--p1), transparent 60%),
+      linear-gradient(135deg, var(--panel), var(--muted));
+    box-shadow: var(--shadow);
+  }
+  .title{font-weight:900; letter-spacing:.2px}
+  .subtitle{font-size:12px; color:var(--soft)}
+  .tabs{display:flex; gap:8px; flex-wrap:wrap}
+  .tab{
+    border:1px solid var(--muted); background:linear-gradient(180deg,var(--panel),#fafaff);
+    padding:12px 16px; border-radius:14px; cursor:pointer; box-shadow:var(--shadow);
+  }
+  .tab.active{
+    outline:3px solid rgba(139,92,246,.3);
+    background:linear-gradient(180deg, #fff, #f8f6ff);
+  }
+
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0}
+  input[type="text"],select,input[type="date"]{
+    border:1px solid var(--muted); background:var(--panel);
+    color:var(--ink); padding:12px 14px; border-radius:14px; min-width:220px;
+    box-shadow: var(--shadow);
+  }
+  .btn{
+    background:var(--cta); color:var(--cta-ink); border:none;
+    padding:12px 18px; border-radius:14px; cursor:pointer; font-weight:800; letter-spacing:.2px;
+    box-shadow: var(--shadow);
+  }
+  .btn.ghost{
+    background:linear-gradient(180deg,var(--panel),#fdfcff);
+    color:var(--ink); border:1px solid var(--muted);
+  }
+  .btn.sun{ background:linear-gradient(90deg, var(--p2), var(--p4)); color:#111; }
+  .btn.danger{ background:linear-gradient(90deg, #fecaca, #fca5a5); color:#7f1d1d; }
+  .btn.mini{ padding:8px 12px; font-weight:700; }
+
+  .panel{
+    background:linear-gradient(180deg, var(--panel), #fafaff);
+    border:1px solid var(--muted); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px;
+  }
+  .grid{display:grid; gap:16px}
+  .columns{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+  @media (max-width:900px){ .columns{grid-template-columns:1fr} }
+
+  .col{display:flex; flex-direction:column; gap:12px}
+  .column-header{display:flex; align-items:center; justify-content:space-between}
+  .kanban{min-height:220px; display:flex; flex-direction:column; gap:12px; padding:8px}
+  .drop{border:2px dashed var(--muted); border-radius:14px; padding:8px}
+
+  .card{
+    background:var(--card); border:1px solid var(--muted); border-radius:14px; padding:12px; display:grid; gap:8px; box-shadow:var(--shadow)
+  }
+  .card.ribbon::before{
+    content:""; position:absolute; inset:auto auto 100% 8px; width:68px; height:12px; border-radius:12px 12px 0 0;
+    background:linear-gradient(90deg, var(--p5), var(--p4));
+  }
+  .rows{display:grid; gap:12px}
+  .row{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center}
+  .tag{
+    font-size:12px; padding:6px 10px; border-radius:999px;
+    background:linear-gradient(180deg, #fff, #f7f7ff); border:1px solid var(--muted);
+  }
+  .tag.sun{ background:linear-gradient(180deg, var(--p2), #fff4d6); border-color:#fbd38d; }
+  .tag.rose{ background:linear-gradient(180deg, var(--p4), #ffe9f4); border-color:#f9a8d4; }
+  .tag.mint{ background:linear-gradient(180deg, var(--p1), #e9fff7); border-color:#86efac; }
+
+  table{width:100%; border-collapse:separate; border-spacing:0 10px}
+  th,td{padding:10px 12px; text-align:left}
+  tbody tr{background:var(--card); border:1px solid var(--muted)}
+  tbody tr td:first-child{border-top-left-radius:12px; border-bottom-left-radius:12px}
+  tbody tr td:last-child{border-top-right-radius:12px; border-bottom-right-radius:12px}
+
+  .progress{height:14px; background:#f1efff; border-radius:999px; overflow:hidden; border:1px solid var(--muted)}
+  .progress>div{height:100%; background:linear-gradient(90deg, var(--p5), var(--p1))}
+
   .spacer{flex:1}
-  /* Login screen */
-  .login{max-width:560px;margin:10vh auto;background:var(--panel);padding:24px;border-radius:16px;border:1px solid var(--muted);box-shadow:var(--shadow)}
-  .login h1{margin:0 0 8px}
-  .stack{display:grid;gap:12px}
-  .hint{font-size:12px;color:var(--soft);margin-top:-6px}
+  .right{justify-content:flex-end}
+  .small{font-size:12px; color:var(--soft)}
+
+  /* ========== Login card ========== */
+  .login{
+    max-width:640px; margin:10vh auto 4vh; padding:24px; border-radius:18px;
+    background:linear-gradient(180deg, var(--panel), #fff);
+    border:1px solid var(--muted); box-shadow:var(--shadow)
+  }
+  .login h1{margin:0 0 8px; font-weight:900}
+  .stack{display:grid; gap:12px}
+  .hint{font-size:12px; color:var(--soft); margin-top:-6px}
+
+  /* Cute divider */
+  .beads{
+    display:flex; gap:8px; align-items:center; justify-content:center; margin:18px 0 8px;
+  }
+  .bead{width:10px; height:10px; border-radius:999px; box-shadow:var(--shadow)}
+  .b1{background:var(--p1)} .b2{background:var(--p2)} .b3{background:var(--p3)} .b4{background:var(--p4)} .b5{background:var(--p5)}
 </style>
 </head>
 <body>
-<!-- LOGIN -->
-<div id="login" class="login" hidden>
-  <h1>Welcome to RenoBoard</h1>
-  <p class="small">Create a passphrase (or enter your existing one) to unlock your data. Your passphrase never leaves this device. Data is encrypted with AES-GCM.</p>
+
+<noscript>
+  <div style="max-width:560px;margin:10vh auto;padding:16px;border:1px solid #fecaca;border-radius:12px;background:#fff5f5;color:#7f1d1d;font:14px/1.4 system-ui;">
+    This app requires JavaScript. Please enable it to continue.
+  </div>
+</noscript>
+
+<!-- ===== SAFE BOOT: ensure login visible even if errors ===== -->
+<script>
+(function SafeBoot(){
+  try{
+    window.onerror = function(msg, src, line, col, err){
+      console.error('[RenoBoard error]', msg, src, line, col, err);
+      var login=document.getElementById('login'), app=document.getElementById('app');
+      if(login) login.hidden=false; if(app) app.hidden=true;
+      var el = document.createElement('div');
+      el.style.cssText='max-width:640px;margin:12px auto;padding:12px;border-radius:14px;border:1px solid #fecaca;background:#fff5f5;color:#7f1d1d;font:14px/1.4 system-ui';
+      el.innerHTML='<strong>Something hiccuped.</strong> The login is shown so you can try again. See console for details.';
+      (login||document.body).prepend(el);
+    };
+  }catch(e){}
+})();
+</script>
+
+<!-- ===== LOGIN ===== -->
+<div id="login" class="login">
+  <h1>RenoBoard <span aria-hidden="true">🫧</span></h1>
+  <p class="small">Pick a passphrase to lock your data. Everything is encrypted locally (AES-GCM). Optional sync uses a <em>private</em> GitHub Gist with your token.</p>
   <div class="stack">
-    <input id="passphrase" type="text" placeholder="Passphrase (keep it memorable)">
+    <input id="passphrase" type="text" placeholder="Passphrase (sweet but strong)">
     <div class="row">
       <div class="stack">
-        <input id="gh-token" type="text" placeholder="(Optional) GitHub token with Gist: read/write">
+        <input id="gh-token" type="text" placeholder="(Optional) GitHub token — gist: read/write">
         <input id="gh-gist"  type="text" placeholder="(Optional) Gist ID for sync">
-        <div class="hint">Tip: leave Gist ID empty and click “Create Gist” later in Settings to make a private one.</div>
+        <div class="hint">Tip: leave Gist ID empty and create one later in Settings → “Create Gist”.</div>
       </div>
       <div><button class="btn ghost" id="btn-load-gist">Load from Gist</button></div>
     </div>
     <div class="row">
       <div class="stack">
         <input id="import-file" type="file" accept="application/json">
-        <div class="hint">Or choose an encrypted backup file you exported earlier.</div>
+        <div class="hint">Or select an encrypted backup you exported earlier.</div>
       </div>
-      <div><button class="btn alt" id="btn-enter">Enter</button></div>
+      <div><button class="btn sun" id="btn-enter">Enter</button></div>
     </div>
   </div>
+  <div class="beads"><div class="bead b1"></div><div class="bead b2"></div><div class="bead b3"></div><div class="bead b4"></div><div class="bead b5"></div></div>
+  <div class="small">Proudly static • GitHub Pages • No servers • Just vibes</div>
 </div>
 
-<!-- APP -->
+<!-- ===== APP ===== -->
 <div class="wrap" id="app" hidden>
   <header>
     <div class="brand">
       <div class="logo" aria-hidden="true"></div>
       <div>
         <div class="title">RenoBoard</div>
-        <div class="small">A calm space for the whole renovation</div>
+        <div class="subtitle">A pastel, calm place for the whole renovation</div>
       </div>
     </div>
     <nav class="tabs" id="tabs">
@@ -116,6 +226,7 @@
       <button class="tab" data-tab="hoa">HOA</button>
       <button class="tab" data-tab="budget">Budget</button>
       <button class="tab" data-tab="wins">Wins</button>
+      <button class="tab" data-tab="vibes">Vibes</button>
       <button class="tab" data-tab="settings">Settings</button>
     </nav>
   </header>
@@ -125,7 +236,7 @@
     <select id="f-room"><option value="">All rooms</option><option>Living Room</option><option>Kitchen</option><option>Bathroom</option><option>Bedroom</option><option>Hallway</option><option>Balcony</option></select>
     <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
     <div class="spacer"></div>
-    <button class="btn alt" id="add-task">+ Task</button>
+    <button class="btn" id="add-task">+ Task</button>
   </div>
 
   <section id="view-board" class="grid">
@@ -143,55 +254,76 @@
 
     <div class="columns">
       <div class="col">
-        <div class="column-header"><h3>Backlog</h3><button class="btn ghost" data-add="Backlog">+ Add</button></div>
+        <div class="column-header"><h3>Backlog</h3><button class="btn ghost mini" data-add="Backlog">+ Add</button></div>
         <div class="kanban drop" id="Backlog"></div>
       </div>
       <div class="col">
-        <div class="column-header"><h3>Doing</h3><button class="btn ghost" data-add="Doing">+ Add</button></div>
+        <div class="column-header"><h3>Doing</h3><button class="btn ghost mini" data-add="Doing">+ Add</button></div>
         <div class="kanban drop" id="Doing"></div>
       </div>
       <div class="col">
-        <div class="column-header"><h3>Done</h3><button class="btn ghost" data-add="Done">+ Add</button></div>
+        <div class="column-header"><h3>Done</h3><button class="btn ghost mini" data-add="Done">+ Add</button></div>
         <div class="kanban drop" id="Done"></div>
       </div>
     </div>
   </section>
 
   <section id="view-contractors" class="panel" hidden>
-    <div class="row"><h3>Contractors</h3><div class="right"><button class="btn alt" id="add-contractor">+ Contractor</button></div></div>
+    <div class="row"><h3>Contractors</h3><div class="right"><button class="btn" id="add-contractor">+ Contractor</button></div></div>
     <table><thead><tr><th>Name</th><th>Trade</th><th>Phone</th><th>Notes</th><th>Rating</th><th></th></tr></thead><tbody id="ctr"></tbody></table>
   </section>
 
   <section id="view-hoa" class="panel" hidden>
-    <div class="row"><h3>HOA & Approvals</h3><div class="right"><button class="btn alt" id="add-hoa">+ HOA Item</button></div></div>
+    <div class="row"><h3>HOA & Approvals</h3><div class="right"><button class="btn" id="add-hoa">+ HOA Item</button></div></div>
     <div class="rows" id="hoa"></div>
   </section>
 
   <section id="view-budget" class="panel" hidden>
-    <div class="row"><h3>Budget</h3><div class="right"><button class="btn alt" id="add-budget">+ Line</button></div></div>
+    <div class="row"><h3>Budget</h3><div class="right"><button class="btn" id="add-budget">+ Line</button></div></div>
     <table><thead><tr><th>Item</th><th>Category</th><th>Planned</th><th>Actual</th><th>Notes</th><th></th></tr></thead><tbody id="bdg"></tbody></table>
     <div class="row right">
-      <span class="tag">Planned £<span id="sumP">0</span></span>
-      <span class="tag">Actual £<span id="sumA">0</span></span>
-      <span class="tag amber" id="variance">Variance £0</span>
+      <span class="tag sun">Planned £<span id="sumP">0</span></span>
+      <span class="tag mint">Actual £<span id="sumA">0</span></span>
+      <span class="tag rose" id="variance">Variance £0</span>
     </div>
   </section>
 
   <section id="view-wins" class="panel" hidden>
-    <div class="row"><h3>Wins</h3><div class="small">Capture little victories ✨</div></div>
+    <div class="row"><h3>Wins</h3><div class="small">Celebrate tiny victories ✨</div></div>
     <div class="rows" id="wins"></div>
-    <div class="row"><input id="wintext" type="text" placeholder="E.g., booked electrician, HOA form submitted…"><button class="btn alt" id="add-win">Add Win</button></div>
+    <div class="row"><input id="wintext" type="text" placeholder="E.g., picked paint, booked electrician, submitted form…"><button class="btn" id="add-win">Add Win</button></div>
+  </section>
+
+  <section id="view-vibes" class="panel" hidden>
+    <div class="row">
+      <h3>Vibes 💬</h3>
+      <div class="right">
+        <button class="btn ghost mini" id="shuffle-vibes">Shuffle</button>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <strong>ATL-Energy One-Liners (playful, non-lyrical)</strong>
+        <ul id="atl" class="rows"></ul>
+        <div class="small">Fun, upbeat lines inspired by the city’s humour—no song lyrics.</div>
+      </div>
+      <div class="card">
+        <strong>Kind Reminders for You 💗</strong>
+        <ul id="kind" class="rows"></ul>
+        <div class="small">Renovations take time. You’re allowed to go gently.</div>
+      </div>
+    </div>
   </section>
 
   <section id="view-settings" class="panel" hidden>
     <h3>Settings & Sync</h3>
     <div class="rows">
       <div class="row">
-        <div><strong>GitHub Sync</strong><div class="small">Encrypted before upload. Token stored only in this browser.</div></div>
+        <div><strong>GitHub Sync</strong><div class="small">Encrypted before upload. Token stays on this device.</div></div>
         <div class="right">
           <button class="btn ghost" id="gist-create">Create Gist</button>
           <button class="btn ghost" id="gist-load">Load</button>
-          <button class="btn alt"   id="gist-save">Save</button>
+          <button class="btn" id="gist-save">Save</button>
         </div>
       </div>
       <div class="row">
@@ -206,32 +338,30 @@
 </div>
 
 <script>
-/* ---------- Basics ---------- */
+/* ===== Shortcuts & keys ===== */
 const $ = (s, el=document)=>el.querySelector(s);
 const $$ = (s, el=document)=>Array.from(el.querySelectorAll(s));
 const fmt = n => '£'+(Number(n||0)).toFixed(2);
-const KEY = 'renoboard:encrypted:v1';        // encrypted blob
-const META_KEY = 'renoboard:meta';           // {gistId?}
-const INACTIVITY_MS = 15*60*1000;            // 15 minutes auto-lock
+const KEY = 'renoboard:encrypted:v1';     // encrypted blob
+const META_KEY = 'renoboard:meta';        // {gistId?}
+const INACTIVITY_MS = 15*60*1000;         // 15 minutes
 
-/* ---------- Data ---------- */
+/* ===== Data ===== */
 const blank = ()=>({ tasks:[], contractors:[], hoa:[], budget:[], wins:[] });
 
-/* ---------- Tabs ---------- */
+/* ===== Tabs ===== */
 $$('.tab').forEach(b=>b.onclick=()=>{
   $$('.tab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
   $$('[id^="view-"]').forEach(s=>s.hidden=true);
   $('#view-'+b.dataset.tab).hidden=false;
 });
 
-/* ---------- Crypto (AES-GCM with PBKDF2) ---------- */
+/* ===== Crypto (AES-GCM + PBKDF2) ===== */
 async function deriveKey(pass, salt){
   const enc = new TextEncoder();
   const baseKey = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    {name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'},
-    baseKey,{name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
-  );
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'},
+    baseKey, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
 }
 async function encryptData(pass, data){
   const enc = new TextEncoder();
@@ -252,19 +382,18 @@ async function decryptData(pass, payload){
 const b64 = arr => btoa(String.fromCharCode(...arr));
 const b64d = str => new Uint8Array([...atob(str)].map(c=>c.charCodeAt(0)));
 
-/* ---------- Local & session ---------- */
+/* ===== Local/session ===== */
 let db = blank();
-let PASS = '';                           // passphrase (memory only)
+let PASS = '';
 let GIST = localStorage.getItem('renoboard:gist') || '';
 let TOKEN = localStorage.getItem('renoboard:token') || '';
-let lockTimer = null;
+let lockTimer=null;
 
-function resetInactivityTimer(){
-  clearTimeout(lockTimer);
-  lockTimer = setTimeout(()=> lockApp('Locked due to inactivity.'), INACTIVITY_MS);
-}
+function showLogin(show=true){ $('#login').hidden=!show; $('#app').hidden=show; }
+function lockApp(msg){ PASS=''; showLogin(true); if(msg) alert(msg); }
+function resetInactivity(){ clearTimeout(lockTimer); lockTimer=setTimeout(()=>lockApp('Locked for a tea break ☕️'), INACTIVITY_MS); }
 ['click','keydown','pointerdown','scroll','visibilitychange'].forEach(ev=>{
-  document.addEventListener(ev, ()=>{ if(!$('#app').hidden) resetInactivityTimer(); }, {passive:true});
+  document.addEventListener(ev, ()=>{ if(!$('#app').hidden) resetInactivity(); }, {passive:true});
 });
 
 async function saveLocal(){
@@ -280,14 +409,13 @@ async function loadLocal(pass){
   db = await decryptData(pass, payload);
 }
 
-/* ---------- GitHub Gist Sync ---------- */
+/* ===== Gist Sync ===== */
 async function gistCreate(){
-  if(!TOKEN) return alert('Add your GitHub token first (gist scope).');
+  if(!TOKEN) return alert('Add your GitHub token (gist: read/write) first.');
   const res = await fetch('https://api.github.com/gists',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN,'Accept':'application/vnd.github+json'},
-    body: JSON.stringify({description:'RenoBoard data (encrypted)',
-      public:false, files:{'renoboard.enc.json':{content:localStorage.getItem(KEY)||'{}'}}})
+    body: JSON.stringify({description:'RenoBoard data (encrypted)', public:false, files:{'renoboard.enc.json':{content:localStorage.getItem(KEY)||'{}'}}})
   });
   if(!res.ok) return alert('Create failed: '+res.status);
   const j=await res.json(); GIST=j.id; localStorage.setItem('renoboard:gist',GIST);
@@ -313,34 +441,26 @@ async function gistLoad(){
   alert('Downloaded. Enter your passphrase to unlock.');
 }
 
-/* ---------- Login & lock flow ---------- */
-function showLogin(show=true){ $('#login').hidden = !show; $('#app').hidden = show; }
-function lockApp(msg){
-  PASS=''; showLogin(true);
-  if(msg) alert(msg);
-}
+/* ===== Boot ===== */
 document.addEventListener('DOMContentLoaded', ()=>{
-  // ALWAYS show login on first load
   showLogin(true);
-  // Pre-fill token/gist if stored
   $('#gh-token').value = localStorage.getItem('renoboard:token') || '';
   $('#gh-gist').value  = localStorage.getItem('renoboard:gist') || '';
 });
 
 $('#btn-enter').onclick = async ()=>{
-  const pass = $('#passphrase').value.trim();
-  if(!pass) return alert('Please enter a passphrase.');
+  const pass = $('#passphrase').value.trim(); if(!pass) return alert('Please enter a passphrase.');
   try{
     PASS = pass;
-    await loadLocal(PASS);         // loads existing blob or creates new memory model
+    await loadLocal(PASS); // ok if first time
     TOKEN = $('#gh-token').value.trim() || TOKEN;
     GIST  = $('#gh-gist').value.trim()  || GIST;
     localStorage.setItem('renoboard:token', TOKEN);
-    localStorage.setItem('renoboard:gist', GIST);
+    localStorage.setItem('renoboard:gist',  GIST);
     showLogin(false);
     renderAll();
-    await saveLocal();             // ensure an encrypted blob exists asap
-    resetInactivityTimer();
+    await saveLocal(); // ensure encrypted blob exists
+    resetInactivity();
   }catch(e){ alert('Could not unlock: '+e.message); }
 };
 $('#btn-load-gist').onclick = async ()=>{
@@ -352,10 +472,10 @@ $('#import-file').onchange = async (e)=>{
   const file=e.target.files[0]; if(!file) return;
   const text = await file.text();
   localStorage.setItem(KEY, text);
-  alert('Imported encrypted backup. Enter your passphrase and press Enter.');
+  alert('Encrypted backup imported. Enter your passphrase and press Enter.');
 };
 
-/* ---------- Board & features ---------- */
+/* ===== Board ===== */
 const columns=['Backlog','Doing','Done'];
 function id(){ return Math.random().toString(36).slice(2,9); }
 function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
@@ -367,11 +487,11 @@ function taskCard(t){
     <div class="row">
       <div><strong>${esc(t.title||'Untitled')}</strong></div>
       <div>
-        ${t.priority?`<span class="tag ${t.priority==='High'?'red':t.priority==='Medium'?'amber':''}">${t.priority}</span>`:''}
+        ${t.priority?`<span class="tag ${t.priority==='High'?'rose':t.priority==='Medium'?'sun':'mint'}">${t.priority}</span>`:''}
         ${t.room?`<span class="tag">${esc(t.room)}</span>`:''}
-        ${t.due?`<span class="tag amber">Due ${t.due}</span>`:''}
-        <button class="btn ghost" data-edit>Edit</button>
-        <button class="btn danger" data-del>Delete</button>
+        ${t.due?`<span class="tag sun">Due ${t.due}</span>`:''}
+        <button class="btn ghost mini" data-edit>Edit</button>
+        <button class="btn danger mini" data-del>Delete</button>
       </div>
     </div>
     ${t.notes?`<div class="small">${esc(t.notes)}</div>`:''}
@@ -418,12 +538,12 @@ function editTask(tid){
 $('#add-task').onclick=()=> editTask(id());
 $$('[data-add]').forEach(b=> b.onclick=()=>{ const tid=id(); db.tasks.push({id:tid,status:b.dataset.add,title:''}); saveLocal(); editTask(tid); });
 
-/* Contractors */
+/* ===== Contractors ===== */
 function renderContractors(){
   const tb=$('#ctr'); tb.innerHTML='';
   db.contractors.forEach(c=>{
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${esc(c.name||'')}</td><td>${esc(c.trade||'')}</td><td>${esc(c.phone||'')}</td><td>${esc(c.notes||'')}</td><td>${'★'.repeat(c.rating||0)}${'☆'.repeat(5-(c.rating||0))}</td><td class="right"><button class="btn ghost" data-e>Edit</button> <button class="btn danger" data-d>Delete</button></td>`;
+    tr.innerHTML = `<td>${esc(c.name||'')}</td><td>${esc(c.trade||'')}</td><td>${esc(c.phone||'')}</td><td>${esc(c.notes||'')}</td><td>${'★'.repeat(c.rating||0)}${'☆'.repeat(5-(c.rating||0))}</td><td class="right"><button class="btn ghost mini" data-e>Edit</button> <button class="btn danger mini" data-d>Delete</button></td>`;
     tr.querySelector('[data-e]').onclick=()=> editContractor(c.id);
     tr.querySelector('[data-d]').onclick=()=>{ db.contractors=db.contractors.filter(x=>x.id!==c.id); saveLocal(); renderContractors(); };
     tb.appendChild(tr);
@@ -442,12 +562,12 @@ function editContractor(cid){
   saveLocal(); renderContractors();
 }
 
-/* HOA */
+/* ===== HOA ===== */
 function renderHOA(){
   const list=$('#hoa'); list.innerHTML='';
   db.hoa.forEach(h=>{
     const card=document.createElement('div'); card.className='card';
-    card.innerHTML = `<div class="row"><div><strong>${esc(h.title||'')}</strong></div><div><span class="tag amber">${h.due?('Due '+h.due):'No date'}</span> <button class="btn ghost" data-e>Edit</button> <button class="btn danger" data-d>Delete</button></div></div>${h.desc?`<div class="small">${esc(h.desc)}</div>`:''}${h.link?`<div class="small">Doc: <a href="${esc(h.link)}" target="_blank" rel="noopener">open</a></div>`:''}<label class="small"><input type="checkbox" ${h.done?'checked':''} data-done> Done</label>`;
+    card.innerHTML = `<div class="row"><div><strong>${esc(h.title||'')}</strong></div><div><span class="tag sun">${h.due?('Due '+h.due):'No date'}</span> <button class="btn ghost mini" data-e>Edit</button> <button class="btn danger mini" data-d>Delete</button></div></div>${h.desc?`<div class="small">${esc(h.desc)}</div>`:''}${h.link?`<div class="small">Doc: <a href="${esc(h.link)}" target="_blank" rel="noopener">open</a></div>`:''}<label class="small"><input type="checkbox" ${h.done?'checked':''} data-done> Done</label>`;
     card.querySelector('[data-e]').onclick=()=> editHOA(h.id);
     card.querySelector('[data-d]').onclick=()=>{ db.hoa=db.hoa.filter(x=>x.id!==h.id); saveLocal(); renderHOA(); };
     card.querySelector('[data-done]').onchange=e=>{ h.done=e.target.checked; saveLocal(); };
@@ -467,12 +587,12 @@ function editHOA(hid){
   saveLocal(); renderHOA();
 }
 
-/* Budget */
+/* ===== Budget ===== */
 function renderBudget(){
   const tb=$('#bdg'); tb.innerHTML=''; let P=0,A=0;
   db.budget.forEach(b=>{
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${esc(b.item||'')}</td><td>${esc(b.cat||'')}</td><td>${fmt(b.planned)}</td><td>${fmt(b.actual)}</td><td>${esc(b.notes||'')}</td><td class="right"><button class="btn ghost" data-e>Edit</button> <button class="btn danger" data-d>Delete</button></td>`;
+    tr.innerHTML = `<td>${esc(b.item||'')}</td><td>${esc(b.cat||'')}</td><td>${fmt(b.planned)}</td><td>${fmt(b.actual)}</td><td>${esc(b.notes||'')}</td><td class="right"><button class="btn ghost mini" data-e>Edit</button> <button class="btn danger mini" data-d>Delete</button></td>`;
     tr.querySelector('[data-e]').onclick=()=> editBudget(b.id);
     tr.querySelector('[data-d]').onclick=()=>{ db.budget=db.budget.filter(x=>x.id!==b.id); saveLocal(); renderBudget(); };
     tb.appendChild(tr); P+=Number(b.planned||0); A+=Number(b.actual||0);
@@ -493,31 +613,87 @@ function editBudget(bid){
   saveLocal(); renderBudget();
 }
 
-/* Wins */
-function renderWins(){ const list=$('#wins'); list.innerHTML=''; db.wins.slice().reverse().forEach(w=>{ const div=document.createElement('div'); div.className='card'; div.textContent=`${w.text} — ${new Date(w.date).toLocaleString()}`; list.appendChild(div); }); }
+/* ===== Wins ===== */
+function renderWins(){
+  const list=$('#wins'); list.innerHTML='';
+  db.wins.slice().reverse().forEach(w=>{
+    const div=document.createElement('div'); div.className='card';
+    div.textContent=`${w.text} — ${new Date(w.date).toLocaleString()}`;
+    list.appendChild(div);
+  });
+}
 $('#add-win').onclick=()=>{ const v=$('#wintext').value.trim(); if(!v) return; db.wins.push({id:id(), text:v, date:Date.now()}); $('#wintext').value=''; saveLocal(); renderWins(); };
 
-/* Filters */
+/* ===== Vibes (non-lyrical originals + kindness) ===== */
+const ATL_LINES = [
+  "Blueprints out, blessings in. 🧰✨",
+  "Contractors call, you still the boss.",
+  "We don’t panic, we plan it.",
+  "Dust now, glow later. 💅🏽",
+  "Hard hat, soft life loading…",
+  "Schedule tight, spirits tighter.",
+  "Snag list? More like brag list soon.",
+  "Demo day energy, calm heart.",
+  "We fixing walls and winning.",
+  "Budget friendly, vibe luxury."
+];
+const KIND_LINES = [
+  "Breathe. Homes (and hearts) take time.",
+  "One shelf today is still progress. 🌷",
+  "It’s okay to ask for help.",
+  "Rest is part of renovation.",
+  "You’re not behind; you’re building.",
+  "Small steps, big changes.",
+  "Done > perfect, always.",
+  "Celebrate the tiny wins.",
+  "Be gentle: you’re learning as you go.",
+  "Your pace is the right pace. 💗"
+];
+function renderVibes(){
+  const atl=$('#atl'); const kd=$('#kind'); atl.innerHTML=''; kd.innerHTML='';
+  ATL_LINES.forEach(t=>{ const li=document.createElement('li'); li.className='tag'; li.textContent=t; atl.appendChild(li); });
+  KIND_LINES.forEach(t=>{ const li=document.createElement('li'); li.className='tag'; li.textContent=t; kd.appendChild(li); });
+}
+$('#shuffle-vibes').onclick=()=>{
+  ATL_LINES.sort(()=>Math.random()-0.5);
+  KIND_LINES.sort(()=>Math.random()-0.5);
+  renderVibes();
+};
+
+/* ===== Filters ===== */
 $('#q').oninput=renderBoard; $('#f-room').onchange=renderBoard; $('#f-prio').onchange=renderBoard;
 
-/* Seed & export */
-$('#seed').onclick=()=>{ if(!confirm('Replace current data with samples?')) return; db=blank(); db.tasks=[{id:id(),title:'Submit HOA form',room:'Hallway',priority:'High',due:future(7),status:'Doing',notes:'Attach plan + insurance'},{id:id(),title:'Choose kitchen tiles',room:'Kitchen',priority:'Medium',due:future(12),status:'Backlog',notes:'Shortlist 3 options'},{id:id(),title:'Paint bedroom',room:'Bedroom',priority:'Low',status:'Doing',notes:'Sage green'},{id:id(),title:'Order sofa',room:'Living Room',priority:'Low',status:'Done'}]; db.contractors=[{id:id(),name:'Northside Electrics',trade:'Electrician',phone:'0123 123 999',notes:'Ask for Saturday slot',rating:4}]; db.hoa=[{id:id(),title:'Noise variance',desc:'Quiet hours plan',due:future(5),contact:'Jamie @ HOA',link:'',done:false}]; db.budget=[{id:id(),item:'Bathroom tile',cat:'Bathroom',planned:800,actual:920,notes:'Over by £120'}]; db.wins=[{id:id(),text:'Booked GC walkthrough',date:Date.now()}]; saveLocal(); renderAll(); };
+/* ===== Seeds & export ===== */
+$('#seed').onclick=()=>{ if(!confirm('Replace current data with samples?')) return;
+  db=blank();
+  db.tasks=[
+    {id:id(),title:'Submit HOA form',room:'Hallway',priority:'High',due:future(7),status:'Doing',notes:'Attach plan + insurance'},
+    {id:id(),title:'Choose kitchen tiles',room:'Kitchen',priority:'Medium',due:future(12),status:'Backlog',notes:'Shortlist 3 options'},
+    {id:id(),title:'Paint bedroom',room:'Bedroom',priority:'Low',status:'Doing',notes:'Sage green'},
+    {id:id(),title:'Order sofa',room:'Living Room',priority:'Low',status:'Done'}
+  ];
+  db.contractors=[{id:id(),name:'Northside Electrics',trade:'Electrician',phone:'0123 123 999',notes:'Ask for Saturday slot',rating:4}];
+  db.hoa=[{id:id(),title:'Noise variance',desc:'Quiet hours plan',due:future(5),contact:'Jamie @ HOA',link:'',done:false}];
+  db.budget=[{id:id(),item:'Bathroom tile',cat:'Bathroom',planned:800,actual:920,notes:'Over by £120'}];
+  db.wins=[{id:id(),text:'Booked GC walkthrough',date:Date.now()}];
+  saveLocal(); renderAll();
+};
 $('#export').onclick=()=>{ const blob=new Blob([localStorage.getItem(KEY)||'{}'], {type:'application/json'}); dl(blob,'renoboard.enc.json'); };
 $('#export-plain').onclick=()=>{ const blob=new Blob([JSON.stringify(db,null,2)], {type:'application/json'}); dl(blob,'renoboard.json'); };
-function dl(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); }
+function dl(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1500); }
 
-/* Settings */
+/* ===== Settings ===== */
 $('#gist-create').onclick=gistCreate;
-$('#gist-load').onclick=async ()=>{ await gistLoad(); alert('Gist downloaded. Lock and re-enter your passphrase to decrypt, or just press Enter now.'); };
+$('#gist-load').onclick=async ()=>{ await gistLoad(); alert('Gist downloaded. Enter your passphrase to unlock.'); };
 $('#gist-save').onclick=gistSave;
 $('#change-pass').onclick=async ()=>{
   const np = prompt('New passphrase:',''); if(!np) return;
-  PASS = np; await saveLocal(); alert('Passphrase updated for this device (data re-encrypted). Don’t forget it!');
+  PASS = np; await saveLocal(); alert('Passphrase updated (data re-encrypted locally).');
 };
 $('#lock').onclick=()=> lockApp();
 
-/* Render all views */
-function renderAll(){ renderBoard(); renderContractors(); renderHOA(); renderBudget(); renderWins(); }
+/* ===== Render all ===== */
+function renderAll(){ renderBoard(); renderContractors(); renderHOA(); renderBudget(); renderWins(); renderVibes(); }
 </script>
 </body>
 </html>
