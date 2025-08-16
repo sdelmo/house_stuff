@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RenoBoard — Apartment Renovation Hub</title>
+<meta name="description" content="A simple, visual hub to manage an apartment renovation: tasks, contractors, HOA, budget, and wins.">
+<link rel="icon" href="data:,">
+<style>
+  :root{
+    --bg: #0b0c0f;
+    --panel:#14161a;
+    --muted:#2a2e36;
+    --text:#f3f4f6;
+    --soft:#d1d5db;
+    --brand:#8b5cf6;
+    --brand-2:#22c55e;
+    --warn:#f59e0b;
+    --danger:#ef4444;
+    --card:#0f1115;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#fafafa; --panel:#ffffff; --muted:#ececec; --text:#0b0c0f; --soft:#4b5563;
+      --card:#ffffff; --shadow:0 10px 25px rgba(0,0,0,.08);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:linear-gradient(180deg, var(--bg), #101218 35%, var(--bg));
+    color:var(--text); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+  }
+  .wrap{max-width:1100px; margin:32px auto 80px; padding:0 16px}
+  header{
+    display:flex; gap:14px; align-items:center; justify-content:space-between; margin-bottom:18px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:12px; font-weight:700; letter-spacing:.2px;
+  }
+  .logo{
+    width:38px; height:38px; border-radius:12px; background:
+      radial-gradient(70% 70% at 30% 20%, #a78bfa, transparent 60%),
+      radial-gradient(70% 70% at 80% 70%, #34d399, transparent 60%),
+      linear-gradient(135deg, #111827, #0b0c0f);
+    box-shadow: var(--shadow);
+  }
+  .tabs{display:flex; gap:8px; flex-wrap:wrap}
+  .tab{
+    border:1px solid var(--muted); background:rgba(255,255,255,.02);
+    padding:10px 14px; border-radius:12px; cursor:pointer; user-select:none;
+  }
+  .tab.active{border-color:transparent; background:linear-gradient(180deg, var(--panel), #0d0f13); box-shadow: var(--shadow)}
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 4px;
+  }
+  .chip, select, input[type="date"], input[type="text"]{
+    border:1px solid var(--muted); background:var(--panel); color:var(--text);
+    padding:10px 12px; border-radius:12px;
+  }
+  .chip{cursor:pointer}
+  .chip.active{outline:2px solid var(--brand)}
+  .grid{display:grid; gap:14px}
+  .panel{
+    background:linear-gradient(180deg, var(--panel), #0e1014);
+    border:1px solid var(--muted); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px;
+  }
+  h2{margin:0 0 10px; font-size:18px}
+  .muted{color:var(--soft); font-size:13px}
+  .btn{
+    background:var(--brand); color:white; border:none; padding:10px 14px; border-radius:12px;
+    cursor:pointer; box-shadow: var(--shadow); font-weight:600;
+  }
+  .btn.secondary{background:#334155}
+  .btn.ghost{background:transparent; border:1px solid var(--muted); color:var(--text)}
+  .btn.warn{background:var(--warn); color:#111}
+  .btn.danger{background:var(--danger)}
+  .section{margin-top:14px}
+  .columns{display:grid; grid-template-columns: repeat(3,1fr); gap:14px}
+  @media (max-width:900px){ .columns{grid-template-columns:1fr} }
+  .col{display:flex; flex-direction:column; gap:10px}
+  .column-header{display:flex; align-items:center; justify-content:space-between}
+  .kanban{min-height:180px; display:flex; flex-direction:column; gap:10px}
+  .card{
+    background:var(--card); border:1px solid var(--muted); border-radius:12px; padding:12px;
+    display:grid; gap:8px; box-shadow:var(--shadow)
+  }
+  .card.dragging{opacity:.6; transform:scale(.98)}
+  .rows{display:grid; gap:10px}
+  .row{display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px}
+  .row > div{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .tag{font-size:12px; padding:4px 8px; border-radius:999px; background:#1f2937; border:1px solid var(--muted)}
+  .tag.green{background:#052; border-color:#0a4; color:#c6ffd6}
+  .tag.amber{background:#332400; border-color:#6b4e00; color:#fde68a}
+  .tag.red{background:#3b0a0a; border-color:#7f1d1d; color:#fecaca}
+  .kinput{display:flex; gap:8px; flex-wrap:wrap}
+  input, select, textarea{width:auto; max-width:100%}
+  textarea{width:100%; min-height:80px; background:var(--panel); border:1px solid var(--muted); color:var(--text); border-radius:12px; padding:10px}
+  table{width:100%; border-collapse:separate; border-spacing:0 10px}
+  th,td{padding:10px 12px; text-align:left}
+  tbody tr{background:var(--card); border:1px solid var(--muted)}
+  tbody tr td{border-top:1px solid var(--muted); border-bottom:1px solid var(--muted)}
+  tbody tr td:first-child{border-left:1px solid var(--muted); border-top-left-radius:12px; border-bottom-left-radius:12px}
+  tbody tr td:last-child{border-right:1px solid var(--muted); border-top-right-radius:12px; border-bottom-right-radius:12px}
+  .flex{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .spacer{flex:1}
+  .right{justify-content:flex-end}
+  .small{font-size:12px; color:var(--soft)}
+  .progress{height:10px; background:#1f2937; border-radius:999px; overflow:hidden}
+  .progress > div{height:100%; background:linear-gradient(90deg, var(--brand), var(--brand-2))}
+  .danger-text{color:#fecaca}
+  .link{color:#a78bfa; text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <div style="font-size:18px; font-weight:800">RenoBoard</div>
+        <div class="small">A calm place for the whole renovation</div>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="board">Board</button>
+      <button class="tab" data-tab="contractors">Contractors</button>
+      <button class="tab" data-tab="hoa">HOA</button>
+      <button class="tab" data-tab="budget">Budget</button>
+      <button class="tab" data-tab="wins">Wins</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+  </header>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar" id="toolbar">
+    <input type="text" id="search" placeholder="Search tasks… (title, notes)" />
+    <select id="filter-room">
+      <option value="">All rooms</option>
+      <option>Living Room</option><option>Kitchen</option><option>Bathroom</option><option>Bedroom</option><option>Hallway</option><option>Balcony</option>
+    </select>
+    <select id="filter-priority">
+      <option value="">All priorities</option>
+      <option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="btn" id="add-task">+ Task</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="views">
+    <!-- BOARD -->
+    <section id="board" class="grid">
+      <div class="panel">
+        <div class="row">
+          <div>
+            <h2>Progress</h2>
+            <div class="small">Auto-calculates from Done column</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="flex">
+            <button class="btn ghost" id="quick-sample">Load sample data</button>
+            <button class="btn secondary" id="export">Export JSON</button>
+            <label class="btn ghost" for="import-file" style="cursor:pointer">Import JSON</label>
+            <input id="import-file" type="file" accept="application/json" style="display:none">
+          </div>
+        </div>
+        <div class="progress" aria-label="progress"><div id="progressbar" style="width:0%"></div></div>
+      </div>
+
+      <div class="columns">
+        <div class="col">
+          <div class="column-header">
+            <h2>Backlog</h2> <button class="btn ghost" data-add="Backlog">+ Add</button>
+          </div>
+          <div class="kanban" id="col-Backlog"></div>
+        </div>
+        <div class="col">
+          <div class="column-header">
+            <h2>Doing</h2> <button class="btn ghost" data-add="Doing">+ Add</button>
+          </div>
+          <div class="kanban" id="col-Doing"></div>
+        </div>
+        <div class="col">
+          <div class="column-header">
+            <h2>Done</h2>
+            <button class="btn ghost" data-add="Done">+ Add</button>
+          </div>
+          <div class="kanban" id="col-Done"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTRACTORS -->
+    <section id="contractors" class="panel" style="display:none">
+      <div class="row">
+        <h2>Contractors</h2>
+        <div class="spacer"></div>
+        <button class="btn" id="add-contractor">+ Contractor</button>
+      </div>
+      <div class="section">
+        <table id="contractor-table">
+          <thead><tr><th>Name</th><th>Trade</th><th>Phone</th><th>Notes</th><th>Rating</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- HOA -->
+    <section id="hoa" class="panel" style="display:none">
+      <div class="row">
+        <h2>HOA & Approvals</h2>
+        <div class="spacer"></div>
+        <button class="btn" id="add-hoa">+ HOA Item</button>
+      </div>
+      <div class="rows" id="hoa-list"></div>
+    </section>
+
+    <!-- BUDGET -->
+    <section id="budget" class="panel" style="display:none">
+      <div class="row">
+        <h2>Budget</h2>
+        <div class="spacer"></div>
+        <button class="btn" id="add-budget">+ Line</button>
+      </div>
+      <div class="section">
+        <table id="budget-table">
+          <thead><tr><th>Item</th><th>Category</th><th>Planned</th><th>Actual</th><th>Notes</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row right">
+        <div class="tag">Planned: £<span id="planned-sum">0</span></div>
+        <div class="tag">Actual: £<span id="actual-sum">0</span></div>
+        <div class="tag" id="variance-tag">Variance: £0</div>
+      </div>
+    </section>
+
+    <!-- WINS -->
+    <section id="wins" class="panel" style="display:none">
+      <div class="row">
+        <h2>Wins Log</h2>
+        <div class="spacer"></div>
+        <div class="muted">Capture little victories ✨</div>
+      </div>
+      <div class="rows" id="wins-list"></div>
+      <div class="row">
+        <input class="chip" id="win-input" placeholder="E.g., Chose tile colour, booked electrician…" style="flex:1">
+        <button class="btn" id="add-win">Add Win</button>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="panel" style="display:none">
+      <h2>Settings & Sync</h2>
+      <div class="rows">
+        <div class="row">
+          <div>
+            <div><strong>Theme</strong></div>
+            <div class="small">Uses your system theme by default</div>
+          </div>
+          <div class="flex">
+            <button class="chip" id="theme-auto">Auto</button>
+            <button class="chip" id="theme-dark">Dark</button>
+            <button class="chip" id="theme-light">Light</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <div><strong>GitHub Sync (optional)</strong></div>
+            <div class="small">Save/load your data to a <em>private Gist</em>—no server, stays in GitHub.</div>
+          </div>
+          <div class="rows" style="min-width:260px">
+            <input id="gh-token" class="chip" placeholder="GitHub token (gist scope)" />
+            <input id="gh-gist" class="chip" placeholder="Gist ID (blank to create)" />
+            <div class="flex">
+              <button class="btn secondary" id="gh-create">Create Gist</button>
+              <button class="btn secondary" id="gh-load">Load</button>
+              <button class="btn" id="gh-save">Save</button>
+            </div>
+            <div class="small">Your token is stored locally in this browser and you can revoke it anytime in GitHub.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <div><strong>Data</strong></div>
+            <div class="small">Export a backup or move to another device.</div>
+          </div>
+          <div class="flex">
+            <button c
